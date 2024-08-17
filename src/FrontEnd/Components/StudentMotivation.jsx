@@ -4,9 +4,11 @@ import AdminDashboard from './AdminDashboard';
 import StaffDashboard from './StaffDashboard';
 import StudentDashboard from './StudentDashboard';
 import image from "../Components/image/back_to_school_illustration.jpeg";
+
 const StudentMotivation = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('');
+  const [user, setUser] = useState()
   const [formData, setFormData] = useState({
     userName: '',
     email: '',
@@ -15,7 +17,7 @@ const StudentMotivation = () => {
   });
 
   const navigate = useNavigate();
-
+  
   const handleButtonClick = (type) => {
     setShowModal(true);
     setModalType(type);
@@ -39,68 +41,90 @@ const StudentMotivation = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    let url = '';
-    let bodyData = {};
+const handleSubmit = async (e) => {
+  e.preventDefault();
   
-    if (modalType === 'signup') {
-      url = 'http://127.0.0.1:5000/sign-up';
-      bodyData = {
-        username: formData.userName,
-        email: formData.email,
-        password: formData.password,
-        userType: formData.userType.toLowerCase()
-      };
-    } else if (modalType === 'login') {
-      url = 'http://127.0.0.1:5000/login';
-      bodyData = {
-        email: formData.email,
-        password: formData.password
-      };
+  let url = '';
+  let bodyData = {};
+  
+  if (modalType === 'signup') {
+    url = 'http://127.0.0.1:5000/sign-up';
+    bodyData = {
+      username: formData.userName,
+      email: formData.email,
+      password: formData.password,
+      userType: formData.userType.toLowerCase()
+    };
+  } else if (modalType === 'login') {
+    url = 'http://127.0.0.1:5000/login';
+    bodyData = {
+      email: formData.email,
+      password: formData.password
+    };
+  }
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(bodyData)
+    });
+  
+    const data = await response.json();
+  
+    if (response.ok) {
+      // Store the JWT token in local storage
+      localStorage.setItem('token', data.access_token);
+      
+      // Fetch user data
+      fetData();
+      
+    } else {
+      alert(`Error: ${data.message}`);
     }
-    //log the body data before sending it to the server
-    console.log('Body Data:', JSON.stringify(bodyData));
+  } catch (error) {
+    console.error('Error:', error);
+    alert('An error occurred. Please try again later.');
+  } finally {
+    handleCloseModal();
+  }
+};
+
+function fetData() {
+  const token = localStorage.getItem('token');
   
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(bodyData)
-      });
-  
-      // Log the response status and text for debugging
-      console.log('Response Status:', response.status);
-      const text = await response.text(); // Read response as text
-      console.log('Response Text:', text);
-  
-      // Try to parse the response text
-      const data = JSON.parse(text);
-  
-      if (response.ok) {
-        alert(`${modalType === 'signup' ? 'Sign Up' : 'Login'} successful!`);
-        if (modalType === 'login') {
-          if (data.role === 'admin') {
-            navigate('/admin-dashboard');
-          } else if (data.role === 'staff') {
-            navigate('/staff-dashboard');
-          } else if (data.role === 'student') {
-            navigate('/student-dashboard');
-          }
-        }
-      } else {
-        alert(`Error: ${data.message}`);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('An error occurred. Please try again later.');
-    } finally {
-      handleCloseModal();
+  fetch('http://127.0.0.1:5000/profile', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
     }
-  };
+  })
+  .then(res => {
+    if (!res.ok) {
+      throw new Error('Failed to fetch user profile');
+    }
+    return res.json();
+  })
+  .then(data => {
+    setUser(data);
+    // Navigate based on the user role
+    if (data.role === 'admin') {
+      navigate('/admin-dashboard');
+    } else if (data.role === 'staff') {
+      navigate('/staff-dashboard');
+    } else if (data.role === 'student') {
+      navigate('/student-dashboard');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  });
+}
+
+
   
   return (
     <div className="landing-page">
@@ -130,7 +154,7 @@ const StudentMotivation = () => {
             Engaging Articles: Stay informed with articles that demystify tech concepts, cover the latest trends, and offer career advice.
             Diverse Multimedia Content: Choose from videos, podcasts, or detailed articles to match your preferred learning style.
             Join Our Community: Enhance your tech knowledge and network with us. Every piece of content is designed to broaden your understanding and connect you with the tech world.
-            Explore TeckStudy today and discover your tech potential tomorrow
+            Explore TeckStudy today and discover your tech potential tomorrow.
           </p>
           <h2>The secret to your future is hidden in your daily routine.</h2>
         </div>

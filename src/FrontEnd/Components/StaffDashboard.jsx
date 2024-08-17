@@ -184,11 +184,28 @@ function StaffDashboard() {
     }
   };
 
-  // Handle logout
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = '/';  // Redirect to the homepage
-  };
+  function handleLogout() {
+    const token = localStorage.getItem('token');
+
+    fetch('http://127.0.0.1:5000/logout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
+      .then(res => res.json())
+      .then(res => {
+          console.log(res)
+          localStorage.clear();
+          window.location.href = '/';  // Redirect to the homepage
+      })
+      .catch(error => {
+        console.error("Error logging out:", error);
+        alert("Something went wrong");
+      });
+  }
+
 
   return (
     <div className="dashboard-container">
